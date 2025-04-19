@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PetTask - Gamified Todo List</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Nunito', sans-serif; }
+        .pet-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .pet-float:hover { transform: scale(1.1); }
+        .mood-emoji { font-size: 2rem; }
+        .task-pet {
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .task-pet:hover { transform: translateY(-5px); }
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .floating { animation: float 3s ease-in-out infinite; }
+    </style>
+</head>
+<body class="bg-blue-50 min-h-screen">
+    <!-- Login/Mood Selection -->
+    <div id="loginOverlay" class="login-overlay flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <h2 class="text-2xl font-bold mb-6 text-center">How are you feeling today?</h2>
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <button onclick="selectMood('happy')" class="mood-emoji bg-gray-100 p-4 rounded-lg hover:bg-gray-200">😊</button>
+                <button onclick="selectMood('neutral')" class="mood-emoji bg-gray-100 p-4 rounded-lg hover:bg-gray-200">😐</button>
+                <button onclick="selectMood('sad')" class="mood-emoji bg-gray-100 p-4 rounded-lg hover:bg-gray-200">😢</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">PetTask</h1>
+        
+        <!-- Add Task Form -->
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <input type="text" id="taskInput" placeholder="Enter new task" class="w-full p-2 border rounded mb-2">
+            <select id="prioritySelect" class="w-full p-2 border rounded mb-4">
+                <option value="low">Low Priority 😊</option>
+                <option value="medium">Medium Priority 😐</option>
+                <option value="high">High Priority 😠</option>
+            </select>
+            <button onclick="addTask()" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Add Task</button>
+        </div>
+
+        <!-- Task List -->
+        <div id="taskList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+
+    <!-- Floating Pet -->
+    <div id="floatingPet" class="pet-float bg-white p-4 rounded-full shadow-lg floating">
+        <span id="petEmoji" class="text-4xl">🐱</span>
+    </div>
+
+    <script>
+        let userMood = 'happy';
+        let tasks = [];
+        const pets = ['🐱', '🐶', '🐰', '🐼', '🐨', '🦊'];
+
+        function selectMood(mood) {
+            userMood = mood;
+            document.getElementById('loginOverlay').style.display = 'none';
+            updateFloatingPet();
+        }
+
+        function updateFloatingPet() {
+            const petEmoji = document.getElementById('petEmoji');
+            switch(userMood) {
+                case 'happy': petEmoji.textContent = '😸'; break;
+                case 'neutral': petEmoji.textContent = '😺'; break;
+                case 'sad': petEmoji.textContent = '😿'; break;
+            }
+        }
+
+        function addTask() {
+            const taskInput = document.getElementById('taskInput');
+            const prioritySelect = document.getElementById('prioritySelect');
+            if (taskInput.value.trim() === '') return;
+
+            const task = {
+                id: Date.now(),
+                text: taskInput.value,
+                priority: prioritySelect.value,
+                pet: pets[Math.floor(Math.random() * pets.length)],
+                completed: false
+            };
+
+            tasks.push(task);
+            renderTasks();
+            taskInput.value = '';
+        }
+
+        function completeTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                renderTasks();
+            }
+        }
+
+        function renderTasks() {
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = tasks.map(task => `
+                <div class="task-pet bg-white p-6 rounded-lg shadow-md ${task.completed ? 'opacity-50' : ''}" onclick="completeTask(${task.id})">
+                    <div class="text-4xl mb-4">${task.pet}</div>
+                    <p class="font-semibold mb-2">${task.text}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">${task.priority} priority</span>
+                        <span class="text-xl">${task.completed ? '✅' : getPriorityEmoji(task.priority)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getPriorityEmoji(priority) {
+            switch(priority) {
+                case 'low': return '😊';
+                case 'medium': return '😐';
+                case 'high': return '😠';
+                default: return '😊';
+            }
+        }
+
+        // Make floating pet draggable
+        const floatingPet = document.getElementById('floatingPet');
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        floatingPet.addEventListener('mousedown', dragStart);
+        floatingPet.addEventListener('touchstart', dragStart);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', drag);
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('touchend', dragEnd);
+
+        function dragStart(e) {
+            if (e.type === 'mousedown') {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+            } else {
+                initialX = e.touches[0].clientX - xOffset;
+                initialY = e.touches[0].clientY - yOffset;
+            }
+            if (e.target === floatingPet) isDragging = true;
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                if (e.type === 'mousemove') {
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                } else {
+                    currentX = e.touches[0].clientX - initialX;
+                    currentY = e.touches[0].clientY - initialY;
+                }
+                xOffset = currentX;
+                yOffset = currentY;
+                setTranslate(currentX, currentY, floatingPet);
+            }
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+        }
+
+        function dragEnd() {
+            isDragging = false;
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
